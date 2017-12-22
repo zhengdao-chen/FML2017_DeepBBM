@@ -38,8 +38,6 @@ def convert_to_pm1(labels):
 
 
 def AdaBoostClf(features, labels, max_depth, n_steps):
-#     max_depth = 2
-#     n_steps = 100
     sample_size = features.shape[0]
     weights = np.ones(sample_size) / sample_size
     clf_list = []
@@ -50,8 +48,6 @@ def AdaBoostClf(features, labels, max_depth, n_steps):
         incorrect = y_predict != labels
         # Error fraction
         estimator_error = np.mean(np.average(incorrect, weights=weights, axis=0))
-        #print (sum(incorrect))
-        #print (estimator_error)
         if (estimator_error >= 0.5):
             break;
         if (estimator_error == 0):
@@ -62,32 +58,12 @@ def AdaBoostClf(features, labels, max_depth, n_steps):
 
         for i in range(sample_size):
             if (labels[i] == y_predict[i]):
-                # weights[i] *= np.exp(-step_size * labels[i] * y_predict[i])# / norm_factor
                 weights[i] *= np.exp(-step_size) / norm_factor
             else:
                 weights[i] *= np.exp(step_size) / norm_factor
-            #weights = weights / np.linalg.norm(weights, ord=1)
-        # print ('maxw', max(weights))
         clf_list.append([clf, step_size])
-
-        #print (weights)
     return clf_list
-#    print (np.mean(weights))
-    
-# plt.plot(weights, '-')
-# plt.show()
 
-# def testEnsemble(clf_list, testing_features, true_labels):
-#     y_predict = np.zeros(true_labels.shape[0])
-#     for pair in clf_list:
-#         clf = pair[0]
-#         step_size = pair[1]
-#         y_predict += step_size * convert_to_pm1(clf.predict(testing_features))
-
-#     y_predict = (np.sign(y_predict) + 1) / 2
-#     incorrect = y_predict != true_labels
-#     test_error = np.mean(incorrect)
-#     return test_error
 def testEnsemble(clf_list, testing_features, true_labels, boolean = True):
     y_predict = np.zeros(true_labels.shape[0])
     for pair in clf_list:
@@ -115,8 +91,6 @@ def MarginBoostClf(features, labels, max_depth, n_steps, margin):
         incorrect = y_predict != labels
         # Error fraction
         estimator_error = np.mean(np.average(incorrect, weights=weights, axis=0))
-        #print (sum(incorrect))
-        #print (estimator_error)
         if (estimator_error >= 0.5):
             break;
         step_size = 0.5 * (np.log((1 - estimator_error) / estimator_error) + np.log(1 - margin) - np.log(1 + margin))
@@ -124,19 +98,12 @@ def MarginBoostClf(features, labels, max_depth, n_steps, margin):
 
         for i in range(sample_size):
             if (labels[i] == y_predict[i]):
-                # weights[i] *= np.exp(-step_size * labels[i] * y_predict[i])# / norm_factor
                 weights[i] *= np.exp(-step_size) / norm_factor
             else:
                 weights[i] *= np.exp(step_size) / norm_factor
-        #weights = weights / np.linalg.norm(weights, ord=1)
         clf_list.append([clf, step_size])
     return clf_list
         
-    
-
-
-# In[290]:
-
 
 def get_k_from_gamma(gamma, sample_size):
     return int(round(1 / (2 * pow(gamma, 2)) * np.log(sample_size / 2)))+1
@@ -163,32 +130,14 @@ def BoostByMaj(features, labels, max_depth, gamma):
             unweighted_estimator_error = np.mean(np.average(incorrect_ones, axis=0))
             countdown -= 1
         counts += correct_ones
-#         if (estimator_error >= 0.5):
-#             print ('about to break')
-#             break;
         coeff_1 = int(np.floor(k/2))-counts
         coeff_2 = int(np.ceil(k/2))-i-1+counts
         weights = comb(k-i-1, coeff_1) * pow(0.5+gamma, coeff_1) * pow(0.5-gamma, coeff_2)
 
         print ('i', i, 'error', estimator_error, 'unweighted_error', unweighted_estimator_error, 'wnorm', np.linalg.norm(weights, ord=1))
         weights = weights / np.linalg.norm(weights, ord=1)
-#         if (estimator_error <= 0.5 - gamma):
-#             clf_list.append([clf, 1])
-        #i -= 1
         clf_list.append([clf, 1])
     return clf_list, weights
-        
-    
-# get_k_from_gamma(0.08, 100)
-# #comb(3, 4)
-# #(np.ceil(3.9))
-# clf_list_bbm, weights = BoostByMaj(features, labels, 10, 0.1)
-# test_error = testEnsemble(clf_list_bbm, testing_features, true_labels)
-# print (test_error)
-
-
-# In[292]:
-
 
 def calc_rademacher(depth, sample_size, num_features, normalizer):
     rademacher = np.sqrt(((2 * pow(2, depth) + 1) * (np.log(num_features + 2) / np.log(2)) *
@@ -200,7 +149,6 @@ def DeepBBM(features, labels, gamma, max_depth_range, PARAM_lambda_2):
     num_features = features.shape[1]
     sample_size = features.shape[0]
     weights = np.ones(sample_size) / sample_size
-    # D_weights = np.ones(sample_size) / sample_size
     counts = np.zeros(sample_size)
     k_pre = get_k_from_gamma(gamma, sample_size)
     k = k_pre
@@ -222,24 +170,9 @@ def DeepBBM(features, labels, gamma, max_depth_range, PARAM_lambda_2):
             new_clf = DecisionTreeClassifier(max_depth=depth)
             new_clf = new_clf.fit(features, labels, sample_weight=weights)
             new_error = eval_clf(new_clf, features, labels, weights)
-#             if (new_error < 0.5):
-#                 new_grad = gradient(new_error, depth, 0, -1, sample_size, num_features, normalizer)
-#                 print ('new_error', new_error, 'new_grad', new_grad)
-#                 if (abs(new_grad) > abs(best_grad)):
-#                     best_new_clf = new_clf
-#                     best_grad = new_grad
-#                     best_error = new_error
-#                     best_depth = depth
-#                     old_tree_is_best = False
             new_edge = new_error - 0.5
             new_sign_edge = np.sign(new_edge)
-#            new_grad = gradient_2(new_error, depth, 0, new_sign_edge, sample_size, num_features, normalizer)
-#             new_penalty = calc_rademacher(depth, sample_size, num_features, normalizer)
-#             new_loss = new_error + PARAM_lambda_2 * calc_rademacher(depth, sample_size, num_features, normalizer)
-            # print (rademacher_list)
             new_loss = new_error + PARAM_lambda_2 * rademacher_list[depth_index]
-#             print ('new_error', new_error, 'new_grad', new_grad)
-            # print ('depth', depth, 'new_error', new_error, 'new_loss', new_loss)
             if (new_loss < best_loss):
                 best_clf = new_clf
                 best_loss = new_loss
@@ -248,13 +181,7 @@ def DeepBBM(features, labels, gamma, max_depth_range, PARAM_lambda_2):
         
         y_predict = best_clf.predict(features)
         correct_ones = y_predict == labels
-#         incorrect_ones = y_predict != labels
-#         estimator_error = np.mean(np.average(incorrect_ones, weights=weights, axis=0))
-#         unweighted_estimator_error = np.mean(np.average(incorrect_ones, axis=0))
-
         counts += correct_ones
-#         if (best_error >= 0.5):
-#             break;
         coeff_1 = int(np.floor(k/2))-counts
         coeff_2 = int(np.ceil(k/2))-t-1+counts
         weights = comb(k-t-1, coeff_1) * pow(0.5+gamma, coeff_1) * pow(0.5-gamma, coeff_2)
@@ -266,25 +193,6 @@ def DeepBBM(features, labels, gamma, max_depth_range, PARAM_lambda_2):
             break
 
         weights = weights / np.linalg.norm(weights, ord=1)
-#         if (estimator_error <= 0.5 - gamma):
-#             clf_list.append([clf, 1])
-        #i -= 1
-    
-        ## Update normalizer
-#         old_normalizer = normalizer
-#         normalizer = 0
-#         for i in range(sample_size):
-#             if (labels[i] == y_predict[i]):
-#                 u = 1/k
-#             else:
-#                 u = -1/k
-#             #print (weights[i])
-#             D_weights[i] *= np.exp(-u)
-#             normalizer += D_weights[i]
-#         #print ('norm', normalizer)
-#         D_weights = D_weights / normalizer
-#         normalizer = normalizer * old_normalizer
-        
         
     return clf_list, weights
 
@@ -315,20 +223,8 @@ def DeepBBM2(features, labels, max_depth, gamma, max_depth_range):
             new_clf = DecisionTreeClassifier(max_depth=depth)
             new_clf = new_clf.fit(features, labels, sample_weight=weights)
             new_error = eval_clf(new_clf, features, labels, weights)
-#             if (new_error < 0.5):
-#                 new_grad = gradient(new_error, depth, 0, -1, sample_size, num_features, normalizer)
-#                 print ('new_error', new_error, 'new_grad', new_grad)
-#                 if (abs(new_grad) > abs(best_grad)):
-#                     best_new_clf = new_clf
-#                     best_grad = new_grad
-#                     best_error = new_error
-#                     best_depth = depth
-#                     old_tree_is_best = False
             new_edge = new_error - 0.5
             new_sign_edge = np.sign(new_edge)
-#            new_grad = gradient_2(new_error, depth, 0, new_sign_edge, sample_size, num_features, normalizer)
-#             new_penalty = calc_rademacher(depth, sample_size, num_features, normalizer)
-#             new_loss = new_error + PARAM_lambda_2 * calc_rademacher(depth, sample_size, num_features, normalizer)
             new_loss = new_error + PARAM_lambda_2 * rademacher_list[depth-1]
 #             print ('new_error', new_error, 'new_grad', new_grad)
             print ('depth', depth, 'new_error', new_error, 'new_grad', new_loss)
@@ -340,10 +236,6 @@ def DeepBBM2(features, labels, max_depth, gamma, max_depth_range):
         
         y_predict = best_clf.predict(features)
         correct_ones = y_predict == labels
-#         incorrect_ones = y_predict != labels
-#         estimator_error = np.mean(np.average(incorrect_ones, weights=weights, axis=0))
-#         unweighted_estimator_error = np.mean(np.average(incorrect_ones, axis=0))
-
         counts += correct_ones
 #         if (best_error >= 0.5):
 #             break;
@@ -353,44 +245,9 @@ def DeepBBM2(features, labels, max_depth, gamma, max_depth_range):
 
         print ('i', t, 'error', best_error, 'wnorm', np.linalg.norm(weights, ord=1))
         weights = weights / np.linalg.norm(weights, ord=1)
-#         if (estimator_error <= 0.5 - gamma):
-#             clf_list.append([clf, 1])
-        #i -= 1
-    
-        ## Update normalizer
-#         old_normalizer = normalizer
-#         normalizer = 0
-#         for i in range(sample_size):
-#             if (labels[i] == y_predict[i]):
-#                 u = 1/k
-#             else:
-#                 u = -1/k
-#             #print (weights[i])
-#             D_weights[i] *= np.exp(-u)
-#             normalizer += D_weights[i]
-#         #print ('norm', normalizer)
-#         D_weights = D_weights / normalizer
-#         normalizer = normalizer * old_normalizer
         
         clf_list.append([best_clf, 1])
     return clf_list, weights
-
-
-# In[293]:
-
-
-## DeepBBM
-# PARAM_lambda_2 = 0.0
-# PARAM_beta = 0.0
-# kTolerance = 0.0000
-# num_features = features.shape[1]
-# clf_list_dbbm, weights = DeepBBM(features, labels, 10, 0.1, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-# test_error = testEnsemble(clf_list_dbbm, testing_features, true_labels)
-# print (test_error)
-
-
-# In[202]:
-
 
 def eval_clf(clf, features, labels, weights):
     y_predict = clf.predict(features)
@@ -461,20 +318,9 @@ def DeepBoost(features, labels, n_steps, max_depth_range, PARAM_lambda, PARAM_be
             new_clf = DecisionTreeClassifier(max_depth=depth)
             new_clf = new_clf.fit(features, labels, sample_weight=weights)
             new_error = eval_clf(new_clf, features, labels, weights)
-#             if (new_error < 0.5):
-#                 new_grad = gradient(new_error, depth, 0, -1, sample_size, num_features, normalizer)
-#                 print ('new_error', new_error, 'new_grad', new_grad)
-#                 if (abs(new_grad) > abs(best_grad)):
-#                     best_new_clf = new_clf
-#                     best_grad = new_grad
-#                     best_error = new_error
-#                     best_depth = depth
-#                     old_tree_is_best = False
             new_edge = new_error - 0.5
             new_sign_edge = np.sign(new_edge)
             new_grad = gradient(new_error, depth, 0, new_sign_edge, sample_size, num_features, normalizer, PARAM_lambda, PARAM_beta)
-#             print ('new_error', new_error, 'new_grad', new_grad)
-            # print ('depth', depth, 'new_error', new_error, 'new_grad', new_grad)
             if (abs(new_grad) > abs(best_grad)):
                 best_new_clf = new_clf
                 best_grad = new_grad
@@ -486,9 +332,7 @@ def DeepBoost(features, labels, n_steps, max_depth_range, PARAM_lambda, PARAM_be
             alpha = triple[1]
             clf = triple[0]
             depth = triple[2]
-            #print (triple)
             eta = compute_eta(best_error, depth, alpha, sample_size, num_features, normalizer, PARAM_lambda, PARAM_beta)
-            # print ('eta', eta)
             clf_list[best_index][1] += eta
         else:
             alpha = 0
@@ -496,7 +340,6 @@ def DeepBoost(features, labels, n_steps, max_depth_range, PARAM_lambda, PARAM_be
             depth = best_depth
             #print ('t', t, 'best_error', best_error)
             eta = compute_eta(best_error, depth, alpha, sample_size, num_features, normalizer, PARAM_lambda, PARAM_beta)
-            #print ('eta', eta)
             clf_list.append([clf, eta, depth])
         old_normalizer = normalizer
         normalizer = 0
@@ -506,13 +349,10 @@ def DeepBoost(features, labels, n_steps, max_depth_range, PARAM_lambda, PARAM_be
                 u = eta
             else:
                 u = -eta
-            #print (weights[i])
             weights[i] *= np.exp(-u)
             normalizer += weights[i]
-        #print ('norm', normalizer)
         weights = weights / normalizer
         normalizer = normalizer * old_normalizer
-        #weights = weights / np.linalg.norm(weights, ord=1)
     return clf_list, weights
 
 def BrownBoost(features, labels, max_depth, total_time):
@@ -594,151 +434,6 @@ def add_noise(labels, noise_level):
             noisy_labels[i] = 1 - labels[i]
     return noisy_labels
 
-
-
-# # In[251]:
-
-
-# PARAM_lambda = 0
-# PARAM_beta = 0.0
-# kTolerance = 0.0000
-# num_features = features.shape[1]
-# clf_list_db = DeepBoost(features, labels, 200, [1, 2, 3, 4, 5])
-
-
-# # In[252]:
-
-
-# print (testEnsemble(clf_list_db, testing_features, true_labels))
-# print (len(clf_list_db))
-# #print (clf_list_db)
-
-
-# # In[84]:
-
-
-# print (get_k_from_gamma(0.08, 4000))
-# comb(500, 250)
-# plt.hist(weights)
-# plt.show()
-
-# test_error = testEnsemble(clf_list_bbm, testing_features, true_labels)
-# print (test_error)
-
-
-# # In[306]:
-
-
-# #clf_list = AdaBoostClf(features, labels, 2, 100)
-# #for T in T_list:
-# #for i in range(1):
-# T = 10000
-# clf_list_adb = AdaBoostClf(features, labels, 5, T)
-# test_error = testEnsemble(clf_list_adb, testing_features, true_labels)
-# print (test_error)
-# print (len(clf_list_adb))
-
-# train_error = testEnsemble(clf_list_adb, features, labels)
-# print (train_error)
-# #print (k)
-
-
-# # In[255]:
-
-
-# T = 500
-# margin = pow(2, -6)
-# clf_list_1 = MarginBoostClf(features, labels, 2, T, margin)
-
-# theta_grid = np.arange(101) / 100
-
-# y_predict = np.zeros(true_labels.shape[0])
-# step_size_sum = 0
-# for pair in clf_list_1:
-#     clf = pair[0]
-#     step_size = pair[1]
-#     y_predict += step_size * convert_to_pm1(clf.predict(testing_features))
-#     step_size_sum += step_size
-
-#     #y_predict = (np.sign(y_predict) + 1) / 2
-# print (y_predict * true_labels)    
-# print (step_size_sum)
-# y_predict = y_predict / step_size_sum
-
-
-# # In[94]:
-
-
-# product = y_predict * convert_to_pm1(true_labels)
-# plt.hist(y_predict * convert_to_pm1(true_labels))
-# plt.show()
-
-# culmul = np.zeros(101)
-# i = 0
-# for theta in theta_grid:
-#     #less_than_margin = np.max(np.zeros(y_predict.shape[0]), y_predict - theta)
-#     less_than_margin = (y_predict < theta)
-#     print (np.mean(less_than_margin))
-#     culmul[i] = np.mean(less_than_margin)
-#     i += 1
-# plt.plot(theta_grid, culmul, 'r.')
-# plt.savefig('hw3_culmul_mb_1.pdf')
-# plt.title('Cumulative margin after 500 rounds of MarginBoost')
-# plt.show()
-
-
-# # In[ ]:
-
-
-# T = 500
-# clf_list_1 = AdaBoostClf(features, labels, 2, T)
-
-# theta_grid = np.arange(101) / 100
-
-# y_predict = np.zeros(true_labels.shape[0])
-# for pair in clf_list_1:
-#     clf = pair[0]
-#     step_size = pair[1]
-#     y_predict += step_size * convert_to_pm1(clf.predict(testing_features))
-
-
-# # In[ ]:
-
-
-# product = y_predict * convert_to_pm1(true_labels)
-# plt.hist(y_predict * convert_to_pm1(true_labels))
-# plt.show()
-
-# culmul = np.zeros(101)
-# i = 0
-# for theta in theta_grid:
-#     #less_than_margin = np.max(np.zeros(y_predict.shape[0]), y_predict - theta)
-#     less_than_margin = (y_predict < theta)
-#     print (np.mean(less_than_margin))
-#     culmul[i] = np.mean(less_than_margin)
-#     i += 1
-# plt.plot(theta_grid, culmul, 'r.')
-# plt.savefig('hw3_culmul_ab_1.pdf')
-# plt.title('Cumulative margin after 500 rounds of MarginBoost')
-# plt.show()
-
-
-# # In[ ]:
-
-
-# margin_list = pow(2.0, np.arange(10) - 10)
-# T_list = [100, 200, 500, 1000]
-# err_result_1 = np.zeros([10, 4])
-# for i in range(10):
-#     for j in range(4):
-#         margin = margin_list[i]
-#         T = T_list[j]
-#         clf_list = MarginBoostClf(features, labels, 1, T, margin)
-#         test_error = testEnsemble(clf_list, testing_features, true_labels)
-#         err_result_1[i, j] = test_error
-#         print (i, j)
-# print (err_result_1)
-
 def train(dataset):
     if (dataset == 'spambase'):
         features, labels, testing_features, true_labels = fetch_data_from_raw('spambase')
@@ -761,15 +456,8 @@ def train(dataset):
     ## Deep BBM
 
     gamma_list = [0.15, 0.1, 0.08, 0.06]
-    # for i in range(5):
-    #     gamma_list.append(pow(10, -i))
     lambda_2_list = [1, 0.1, 0.01, 0.001, 0.0001]
     max_depth_list = [1, 2, 3, 5, 10, 15]
-    # gamma_list = [0.15]
-    # for i in range(5):
-    #     gamma_list.append(pow(10, -i))
-    # lambda_2_list = [0.01]
-    # max_depth_list = [2, 3]
 
     # parameter search for Deep BBM
     # train_errors_dbbm = np.zeros([len(gamma_list), len(lambda_2_list), len(max_depth_list)])
@@ -799,13 +487,13 @@ def train(dataset):
     print ('dbbm done')
 
     ## DecisionTreeClassifier
-    # dtc = DecisionTreeClassifier(max_depth=tree_depth)
-    # dtc = dtc.fit(features, labels)
-    # train_pred = dtc.predict(features)
-    # train_mse_dtc = ((train_pred - labels) ** 2).mean(axis=0)
-    # test_pred = dtc.predict(testing_features)
-    # # print (np.concatenate((np.expand_dims(pred, axis=1), np.expand_dims(true_labels, axis=1)), axis=1))
-    # test_mse_dtc = ((test_pred - true_labels) ** 2).mean(axis=0)
+    dtc = DecisionTreeClassifier(max_depth=tree_depth)
+    dtc = dtc.fit(features, labels)
+    train_pred = dtc.predict(features)
+    train_mse_dtc = ((train_pred - labels) ** 2).mean(axis=0)
+    test_pred = dtc.predict(testing_features)
+    # print (np.concatenate((np.expand_dims(pred, axis=1), np.expand_dims(true_labels, axis=1)), axis=1))
+    test_mse_dtc = ((test_pred - true_labels) ** 2).mean(axis=0)
 
     ## Boost by Majority
     # gamma = 0.1
@@ -843,8 +531,8 @@ def train(dataset):
     print ('DeepBoost: test_error', test_error_db)
     print ('DeepBBM: train_error', train_error_dbbm)
     print ('DeepBBM: test_error', test_error_dbbm)
-    # print ('decision tree: train_mse', train_mse_dtc)
-    # print ('decision tree: test_mse', test_mse_dtc)
+    print ('decision tree: train_mse', train_mse_dtc)
+    print ('decision tree: test_mse', test_mse_dtc)
     print ('BBM: train_error', train_error_bbm)
     print ('BBM: test_error', test_error_bbm)
     print ('AdaBoost: train_error', train_error_adb)
@@ -883,9 +571,6 @@ def train_diabetes():
 
 def tune_dbbm(dataset):
     # parameter search for Deep BBM
-    # gamma_list = [0.06]
-    # lambda_2_list = [1, 0.1, 0.01, 0.001, 0.0001]
-    # max_depth_list = [1, 2, 3, 5, 10, 15]
     if (dataset == 'spambase'):
         features, labels, testing_features, true_labels = fetch_data_from_raw('spambase')
     else:
@@ -919,9 +604,6 @@ def tune_dbbm(dataset):
 
 def tune_db(dataset):
     # parameter search for Deep BBM
-    # gamma_list = [0.06]
-    # lambda_2_list = [1, 0.1, 0.01, 0.001, 0.0001]
-    # max_depth_list = [1, 2, 3, 5, 10, 15]
     if (dataset == 'spambase'):
         features, labels, testing_features, true_labels = fetch_data_from_raw('spambase')
     else:
@@ -930,10 +612,6 @@ def tune_db(dataset):
     beta_list = [0.001, 0.0001, 0.00001, 0.000001, 0.0000001]
     max_depth_list = [3, 5, 10, 15, 20]
     T_list = [100, 200, 500]
-    # lambda_list = [0.00028]
-    # beta_list = [0.00019]
-    # max_depth_list = [3]
-    # T_list = [100]
     train_errors_db = np.zeros([len(lambda_list), len(beta_list), len(max_depth_list), len(T_list)])
     test_errors_db = np.zeros([len(lambda_list), len(beta_list), len(max_depth_list), len(T_list)])
     num_clf_db = np.zeros([len(lambda_list), len(beta_list), len(max_depth_list), len(T_list)])
@@ -949,9 +627,6 @@ def tune_db(dataset):
                     for l in range(max_depth):
                         depth_range.append(l+1)
                     print (depth_range)
-                    #clf_list_db, weights = DeepBoost(features, labels, gamma, depth_range, lambda_2)
-                    #train_error_dbbm = testEnsemble(clf_list_dbbm, features, labels)
-                    #test_error_dbbm = testEnsemble(clf_list_dbbm, testing_features, true_labels)
                     clf_list_db, weights = DeepBoost(features, labels, T, depth_range, PARAM_lambda, PARAM_beta)
                     train_error_db = testEnsemble(clf_list_db, features, labels)
                     test_error_db = testEnsemble(clf_list_db, testing_features, true_labels)
@@ -1139,19 +814,9 @@ def Exp_compareAlgos(dataset, num_trials):
     np.save('NumClf_bb_spam_ca', NumClf_bb_spam_ca)
 
 
-
-#features, labels, testing_features, true_labels = fetch_data_from_raw('spambase')
-# features, labels, testing_features, true_labels = fetch_npy_data('diabetes')
-# # labels = add_noise(labels, 0.1)
-# tree_depth = 5
-# ## Parameters for DeepBoost
-# PARAM_lambda = 0.001
-# #PARAM_lambda_2 = 0.1
-# PARAM_beta = 0.001
 kTolerance = 0.0001
-# num_features = features.shape[1]
-#train()
-# train()
+
+train()
 # train_diabetes()
 # train_2()
 # tune_dbbm('spambase')
